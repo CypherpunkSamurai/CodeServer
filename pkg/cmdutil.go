@@ -1,4 +1,4 @@
-package term
+package pkg
 
 import (
 	"os/exec"

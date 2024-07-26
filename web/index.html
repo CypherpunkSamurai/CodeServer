@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Client</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="container mx-auto p-4 flex-grow flex flex-col">
+        <h1 class="text-3xl font-bold mb-4 text-center text-blue-600">WebSocket Client</h1>
+
+        <div class="mb-4">
+            <input type="text" id="urlInput" placeholder="Enter WebSocket URL"
+                class="w-full p-2 border rounded text-gray-500 focus:outline-none focus:ring"
+                value="ws://127.0.0.1:8080/bridge/pyls">
+            <button id="connectbtn" onclick="connect()"
+                class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                Connect
+            </button>
+        </div>
+
+        <div class="flex-grow bg-white rounded overflow-hidden shadow p-4">
+            <h2 class="text-lg text-gray-500 rounded bg-gray-100 px-2 py-1 font-medium mb-2">Log</h2>
+            <div id="messageLog" class="h-96 overflow-y-auto rounded"></div>
+        </div>
+
+        <div class="mt-4 flex">
+            <input type="text" id="messageInput" placeholder="Enter message"
+                class="flex-grow p-2 border rounded-l  focus:outline-none focus:ring">
+            <button onclick="sendMessage()"
+                class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-r">
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let connected = false;
+        const url = document.getElementById('urlInput');
+        const connectbtn = document.getElementById('connectbtn');
+
+        // set connection url
+        url.textContent = `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.hostname}:${window.location.port}/bridge/pyls`;
+
+        function connect() {
+            if (connected === true) {
+                socket.close();
+                connected = false;
+                connectbtn.textContent = "Connect";
+                return;
+            }
+            socket = new WebSocket(url.value);
+
+            socket.onopen = function (e) {
+                addLog('', 'seperator');
+                addLog('Connected', 'event');
+                connected = true;
+                connectbtn.textContent = "Disconnect";
+            };
+
+            socket.onclose = function (e) {
+                addLog('Disconnected', 'event');
+                addLog(`Reason: ${e.reason === '' ? "No Reason" : e.reason}`, 'event');
+                connected = false;
+                connectbtn.textContent = "Connect";
+            };
+
+            socket.onmessage = function (e) {
+                addLog(e.data, 'received');
+            };
+
+            socket.onerror = function (e) {
+                addLog(`Error: ${e.message === undefined ? 'None' : e.message}`, 'event');
+                console.log(e);
+            };
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                addLog(message, 'sent');
+                document.getElementById('messageInput').value = '';
+            } else {
+                addLog('Not connected', 'event');
+            }
+        }
+
+        function addLog(message, type) {
+            const messageLogDiv = document.getElementById('messageLog');
+            const logElement = document.createElement('div');
+            logElement.classList.add('mb-2', 'p-2', 'rounded');
+
+            switch (type) {
+                case 'seperator':
+                    logElement.classList.add('bg-gray-300', 'text-blue-800');
+                    message = '';
+                    break;
+                case 'received':
+                    logElement.classList.add('bg-blue-200', 'text-blue-800');
+                    break;
+                case 'sent':
+                    logElement.classList.add('bg-green-200', 'text-green-800');
+                    break;
+                case 'event':
+                    if (message.includes("Connected")) {
+                        logElement.classList.add('bg-green-100', 'text-green-800');
+                    } else if (message.includes("Disconnected")) {
+                        logElement.classList.add('bg-red-100', 'text-red-800');
+                    } else {
+                        logElement.classList.add('bg-yellow-100', 'text-yellow-800');
+                    }
+                    break;
+            }
+
+            logElement.textContent = message;
+            messageLogDiv.appendChild(logElement);
+            messageLogDiv.scrollTop = messageLogDiv.scrollHeight;
+        }
+    </script>
+    <style>
+        /* width */
+        ::-webkit-scrollbar {
+            width: 0.4rem;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0);
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+            background: #00000022;
+            border-radius: 0.4rem;
+        }
+
+        /* Handle on hover */
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+    </style>
+</body>
+
+</html>
